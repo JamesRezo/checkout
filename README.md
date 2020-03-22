@@ -40,6 +40,13 @@ checkout.php spip -bspip-3.2 dossier_destination
 ```
 checkout.php spip dossier_destination
 ```
+### montée de version d'un SPIP installé avec checkout.php:
+- il suffit de jouer la commande en indiquant la nouvelle version dans le paramètre *-b* :
+par exemple pour passer un SPIP en version de dev (branche *master* donc)
+```
+checkout.php spip -bmaster dossier_destination
+```
+le script va faire la mise à jour des fichiers puis passer sur la version master non seulement pour le core mais aussi pour squelettes-dist et tous les plugins-dist
 
 ### Checkout un repo :
 ```
