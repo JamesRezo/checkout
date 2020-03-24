@@ -83,3 +83,6 @@ indiquer une branche pour se limiter aux mises à jour disponibles sur la branch
 checkout.php --logupdate -bmaster dossier_destination
 ```
 
+#### Références :
+- un comparatif des outils d'intallation en ligne de commande SPIP : https://blog.smellup.net/spip.php?article117
+
