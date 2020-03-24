@@ -35,6 +35,11 @@ checkout.php spip dossier_destination
 ```
 checkout.php spip -bspip-3.2 dossier_destination
 ```
+- installation en SSH pour les commandes git à la place de HTTPS (permet de faciliter les commits à partir de cette installation) :
+```
+checkout.php spip -bmaster git@git.spip.net dossier_destination
+```
+
 ### Mise à jour d'un SPIP installé avec checkout.php:
 - en général il suffit de rejouer la commande d'installation : par exemple
 ```
