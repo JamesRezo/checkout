@@ -39,6 +39,7 @@ checkout.php spip -bspip-3.2 dossier_destination
 ```
 checkout.php spip -bmaster git@git.spip.net dossier_destination
 ```
+*NB :* sous Windows les utilisateurs de Putty devront d'abord faire une tentative de connexion sur `git@git.spip.net:SPIP/spip.git` afin d'intégrer "l'empreinte ssh" de git.spip.net aux serveurs autorisés.
 
 ### Mise à jour d'un SPIP installé avec checkout.php:
 - en général il suffit de rejouer la commande d'installation : par exemple
@@ -84,5 +85,5 @@ checkout.php --logupdate -bmaster dossier_destination
 ```
 
 #### Références :
-- un comparatif des outils d'intallation en ligne de commande SPIP : https://blog.smellup.net/spip.php?article117
+- récapitulatif sur les outils d'installation en ligne de commande de SPIP : https://blog.smellup.net/spip.php?article117
 
