@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 /**
- * v 1.0.1
+ * v 1.1.0
  * checkout.php --help
  * 
  * installation Windows: 
@@ -26,6 +26,14 @@ if (!$methode and $source) {
 if ((count($argv)>1 and $argv[1]=="--help") or (!$methode and !$dest)) {
 	checkout_help();
 	exit;
+}
+
+if (getenv('FORCE_RM_AND_CHECKOUT_AGAIN_BAD_DEST')
+	or isset($options['forcerm'])) {
+	define('_FORCE_RM_AND_CHECKOUT_AGAIN_BAD_DEST', true);
+}
+else {
+	define('_FORCE_RM_AND_CHECKOUT_AGAIN_BAD_DEST', false);
 }
 
 if (isset($options['read'])){
@@ -200,6 +208,8 @@ function interprete_commande($args){
 			$options['revision'] = substr($a,2);
 		elseif (strncmp($a,'--revision',10)==0)
 			$options['revision'] = substr($a,10);
+		elseif (strncmp($a,'--forcerm',6)==0)
+			$options['forcerm'] = true;
 		elseif (strncmp($a,'--read',6)==0)
 			$options['read'] = true;
 		elseif (strncmp($a,'--logupdate',6)==0)
@@ -267,16 +277,19 @@ function logupdate_source($dest,$options){
  * (ou suppression si variable environnement posee ET chemin safe)
  * @param string $erreur
  * @param string $dir
+ * @param bool $delete
  */
-function erreur_repertoire_existant($erreur, $dir) {
+function erreur_repertoire_existant($erreur, $dir, $delete = true) {
 	echo "\n/!\ " . $erreur;
-	if (getenv('FORCE_RM_AND_CHECKOUT_AGAIN_BAD_DEST')) {
+	if (_FORCE_RM_AND_CHECKOUT_AGAIN_BAD_DEST) {
 		$dir = trim($dir);
 		if (strpos($dir, "/")!==0
 		  and strpos($dir, ".")!==0
 		  and strpos($dir, "..")===false) {
 			echo "...SUPPRESION $dir";
-			exec("rm -fR $dir");
+			if ($delete) {
+				exec("rm -fR $dir");
+			}
 			return;
 		}
 	}
@@ -395,14 +408,40 @@ function spip_checkout($source, $dest, $options) {
  * @return string
  */
 function svn_checkout($source,$dest,$options){
+	$user = $pass = '';
+	$parts = parse_url($source);
+	if (!empty($parts['user']) and !empty($parts['pass'])) {
+		$user = $parts['user'];
+		$pass = $parts['pass'];
+		$source = str_replace("://$user:$pass@", '://', $source);
+	}
+
+	$checkout_needed = false;
 
 	if (is_dir($dest)){
 		$infos = svn_read($dest,array('format'=>'assoc'));
 		if (!$infos){
-			erreur_repertoire_existant("$dest n'est pas au format SVN", $dest);
+			erreur_repertoire_existant("$dest n'est pas au format SVN", $dest, false);
+			$checkout_needed = true;
 		}
 		elseif ($infos['source']!==$source) {
-			erreur_repertoire_existant("$dest n'est pas sur le bon repository SVN", $dest);
+			// gerer le cas particulier ou le repo a mv dans un sous dossier trunk ou branches/.. mais on pointe sur une revision anterieure
+			// du coup le svn info renvoi toujours l'ancien dossier :(
+			$checkout_needed = true;
+			if (strpos($source, $infos['source'])===0) {
+				$subfolder = ltrim(substr($source, strlen($infos['source'])), DIRECTORY_SEPARATOR);
+				if (strpos($subfolder,'branches/')!== false or $subfolder==='trunk') {
+					if (!file_exists($dest . DIRECTORY_SEPARATOR . $subfolder)) {
+						if (isset($options['revision']) and $options['revision']==$infos['revision']) {
+							$checkout_needed = false;
+							$command = "$dest sur $source Revision ".$options['revision']. " (avant passage en $subfolder)";
+						}
+					}
+				}
+			}
+			if ($checkout_needed) {
+				erreur_repertoire_existant("$dest n'est pas sur le bon repository SVN", $dest, false);
+			}
 		}
 		elseif (!isset($options['revision'])
 		  OR $options['revision']!=$infos['revision']){
@@ -421,17 +460,33 @@ function svn_checkout($source,$dest,$options){
 			$command = "$dest deja sur $source Revision ".$options['revision'];
 		}
 	}
+	else {
+		$checkout_needed = true;
+	}
 	clearstatcache();
 
-	if (!is_dir($dest)){
+	if ($checkout_needed){
+		$dest_co = $dest;
+		while (is_dir($dest_co)) {
+			$dest_co .= '_';
+		}
 		$command = "svn co ";
 		if (isset($options['revision']))
 			$command .= "-r".$options['revision']." ";
 		if (isset($options['literal']))
 			$command .= $options['literal']." ";
-		$command .= "$source $dest";
+		if ($user and $pass) {
+			$command .= "--username $user --password $pass ";
+		}
+
+		$command .= "$source $dest_co";
 		echo "\n$command\n";
 		passthru($command);
+		if ($dest_co !== $dest) {
+			$command = "mv $dest {$dest_co}.old && mv $dest_co $dest && rm -fR {$dest_co}.old";
+			echo "$command\n";
+			passthru($command);
+		}
 		echo "\n";
 	}
 
@@ -563,15 +618,19 @@ function svn_log($source,$options){
  */
 function git_checkout($source,$dest,$options){
 
+	$checkout_needed = false;
+
 	$curdir = getcwd();
 	$branche = (isset($options['branche'])?$options['branche']:'master');
 	if (is_dir($dest)){
 		$infos = git_read($dest,array('format'=>'assoc'));
 		if (!$infos){
-			erreur_repertoire_existant("$dest n'est pas au format GIT", $dest);
+			erreur_repertoire_existant("$dest n'est pas au format GIT", $dest, false);
+			$checkout_needed = true;
 		}
 		elseif ($infos['source']!==$source) {
-			erreur_repertoire_existant("$dest n'est pas sur le bon repository GIT", $dest);
+			erreur_repertoire_existant("$dest n'est pas sur le bon repository GIT", $dest, false);
+			$checkout_needed = true;
 		}
 		elseif (!isset($options['revision']) or !isset($infos['revision'])
 		  or git_compare_revisions($options['revision'], $infos['revision']) !== 0){
@@ -605,26 +664,38 @@ function git_checkout($source,$dest,$options){
 			$command = "$dest deja sur $source Revision ".$options['revision'];
 		}
 	}
+	else {
+		$checkout_needed = true;
+	}
 	clearstatcache();
 
-	if (!is_dir($dest)){
+	if ($checkout_needed){
+		$dest_co = $dest;
+		while (is_dir($dest_co)) {
+			$dest_co .= '_';
+		}
 		$command = "git clone ";
-		$command .= "$source $dest";
+		$command .= "$source $dest_co";
 		echo "\n$command\n";
 		passthru($command);
 		if (isset($options['revision'])){
-			chdir($dest);
+			chdir($dest_co);
 			$command = "git checkout --detach ".$options['revision'];
 			echo "$command\n";
 			passthru($command);
 			chdir($curdir);
 		}
 		elseif ($branche !== 'master') {
-			chdir($dest);
+			chdir($dest_co);
 			$command = "git checkout $branche";
 			echo "$command\n";
 			passthru($command);
 			chdir($curdir);
+		}
+		if ($dest_co !== $dest) {
+			$command = "mv $dest {$dest_co}.old && mv $dest_co $dest && rm -fR {$dest_co}.old";
+			echo "$command\n";
+			passthru($command);
 		}
 		echo "\n";
 	}
@@ -760,17 +831,22 @@ function git_log($dest,$options){
 	$branche = "--all";
 	if (isset($options['branche'])) {
 		$branche = $options['branche'];
+		if (strpos($branche, 'origin/') !== 0) {
+			$branche = 'origin/' . $branche;
+		}
 	}
-	exec("git log$r --pretty=tformat:'%h | %ae | %ct | %d %s ' $branche",$output);
+	exec("git log$r --pretty=tformat:'%h | %an | %ae | %ct | %d %s ' $branche",$output);
 	foreach($output as $k=>$line){
 		$line = explode("|",ltrim($line,"*"));
 		$revision = trim(array_shift($line));
-		$comiter = trim(array_shift($line));
+		$comitter_name = trim(array_shift($line));
+		$comitter_email = trim(array_shift($line));
+		$comitter = ($comitter_email ? $comitter_email : $comitter_name);
 		$date = date('Y-m-d H:i:s',trim(array_shift($line)));
 		$comm = trim(implode("|",$line));
 		if (strlen($comm)>_MAX_LOG_LENGTH)
 			$comm = substr($comm,0,_MAX_LOG_LENGTH)."...";
-		$output[$k] = "$revision | $comiter | $date | $comm";
+		$output[$k] = "$revision | $comitter | $date | $comm";
 	}
 	$output = implode("\n",$output);
 
@@ -794,25 +870,36 @@ function git_log($dest,$options){
  * @return string
  */
 function ftp_checkout($source,$dest,$options){
+	$checkout_needed = false;
+
 	if (is_dir($dest)){
 		$infos = ftp_read($dest,array('format'=>'assoc'));
 		if (!$infos){
-			erreur_repertoire_existant("$dest n'est pas un download FTP", $dest);
+			erreur_repertoire_existant("$dest n'est pas un download FTP", $dest, false);
+			$checkout_needed = true;
 			clearstatcache();
 		}
 		elseif ($infos['source']!==$source) {
-			erreur_repertoire_existant("n'est pas un download de $source", $dest);
+			erreur_repertoire_existant("n'est pas un download de $source", $dest, false);
+			$checkout_needed = true;
 			clearstatcache();
 		}
+	}
+	else {
+		$checkout_needed = true;
 	}
 	clearstatcache();
 
 
-	if (!is_dir($dest)){
-		$dirdl = dirname($dest)."/";
+	if ($checkout_needed){
+		$dest_co = $dest;
+		while (is_dir($dest_co)) {
+			$dest_co .= '_';
+		}
+		$dirdl = dirname($dest_co)."/";
 
 		passthru("mkdir -p $dirdl");
-		$d = $dirdl . md5(basename($dest)).".tmp";
+		$d = $dirdl . md5(basename($dest_co)).".tmp";
 
 		// recuperer le fichier
 		$command = "curl --silent -L \"$source\" > $d";
@@ -847,9 +934,14 @@ function ftp_checkout($source,$dest,$options){
 				if (count($sous)==1 and $sd = reset($sous) and is_dir($sd)) {
 					$deplace = $sd;
 				}
-				$command = "mv $deplace $dest";
+				$command = "mv $deplace $dest_co";
 				echo "\n$command\n";
 				passthru($command);
+				if ($dest_co !== $dest) {
+					$command = "mv $dest {$dest_co}.old && mv $dest_co $dest && rm -fR {$dest_co}.old";
+					echo "$command\n";
+					passthru($command);
+				}
 				echo "\n";
 				if (is_dir($tempdir)) {
 					passthru("rmdir $tempdir");
