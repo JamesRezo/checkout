@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 /**
- * v 1.1.0
+ * v 1.1.1
  * checkout.php --help
  * 
  * installation Windows: 
@@ -728,15 +728,18 @@ function git_read($dest, $options){
 	$curdir = getcwd();
 	chdir($dest);
 
-	exec("git remote -v",$output);
-	$output = implode("\n",$output);
-
-	if (!preg_match(",(\w+://.*|\w+@[\w\.-]+:.*)\s+\(fetch\)$,Uims",$output,$m)){
+	$remotes = git_get_remotes($dest);
+	if (!$remotes){
 		chdir($curdir);
 		return "";
 	}
 
-	$source = $m[1];
+	if (isset($remotes['origin'])) {
+		$source = $remotes['origin'];
+	}
+	else {
+		$source = reset($remotes);
+	}
 
 	$modifed = false;
 	$branche = false;
@@ -786,6 +789,28 @@ function git_read($dest, $options){
 		$opt .= " -b{$branche}";
 	}
 	return $GLOBALS['script']." git{$opt} $source $dest ";
+}
+
+/**
+ * @param $dir_repo
+ * @return array
+ */
+function git_get_remotes($dir_repo){
+	// recuperer les remote (fetch) du dossier
+	$ouput = [];
+	exec("cd $dir_repo && git remote -v", $output);
+	$remotes = [];
+	foreach ($output as $o){
+		if (preg_match(",(\w+://.*|\w+@[\w\.-]+:.*)\s+\(fetch\)$,Uis",$o,$m)){
+			$o = preg_replace(",\s+,", " ", $o);
+			$o = explode(' ', $o);
+			$remote_name = array_shift($o);
+			$remote_url = array_shift($o);
+
+			$remotes[$remote_name] = $remote_url;
+		}
+	}
+	return $remotes;
 }
 
 
