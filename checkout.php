@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 /**
- * v 1.1.1
+ * v 1.2.0
  * checkout.php --help
  * 
  * installation Windows: 
@@ -14,6 +14,16 @@
 
 date_default_timezone_set("Europe/Paris");
 define("_MAX_LOG_LENGTH",100);
+
+/**
+ * Possibilite de definir des mirroirs
+ * supporte en git uniquement
+ * les mirroirs sont ajoutes en remote, et sont donc recupere par le fetch --all :
+ * meme si un des serveur ne reponds pas on peut recuperer la reference que l'on veut checkout sur un autre des serveurs
+ */
+$git_mirrors = [
+	// 'https://www.git_origin.org/' => [ 'https://www.git_mirror1.org/', 'https://www.git_mirror2.org/',... ]
+];
 
 list($methode,$source,$dest,$options) = interprete_commande($argv);
 
@@ -634,6 +644,7 @@ function git_checkout($source,$dest,$options){
 		}
 		elseif (!isset($options['revision']) or !isset($infos['revision'])
 		  or git_compare_revisions($options['revision'], $infos['revision']) !== 0){
+			git_check_mirrors($dest, $source);
 			chdir($dest);
 			//$command = "git checkout $branche";
 			//passthru($command);
@@ -677,25 +688,49 @@ function git_checkout($source,$dest,$options){
 		$command = "git clone ";
 		$command .= "$source $dest_co";
 		echo "\n$command\n";
-		passthru($command);
-		if (isset($options['revision'])){
-			chdir($dest_co);
-			$command = "git checkout --detach ".$options['revision'];
-			echo "$command\n";
-			passthru($command);
-			chdir($curdir);
+		passthru($command, $error);
+		if (!is_dir($dest_co) or $error) {
+			if ($urls_alt = git_get_urls_mirrors($source)) {
+				foreach ($urls_alt as $source_alt) {
+					$command = "git clone ";
+					$command .= "$source_alt $dest_co";
+					echo "\n$command\n";
+					passthru($command, $error);
+					if (is_dir($dest_co) and !$error) {
+						break;
+					}
+				}
+				if (is_dir($dest_co)) {
+					$command = "git remote rename origin mirror";
+					echo "\n$command\n";
+					passthru("cd $dest_co && $command");
+					$command = "git remote add origin $source";
+					echo "\n$command\n";
+					passthru("cd $dest_co && $command");
+				}
+			}
 		}
-		elseif ($branche !== 'master') {
-			chdir($dest_co);
-			$command = "git checkout $branche";
-			echo "$command\n";
-			passthru($command);
-			chdir($curdir);
-		}
-		if ($dest_co !== $dest) {
-			$command = "mv $dest {$dest_co}.old && mv $dest_co $dest && rm -fR {$dest_co}.old";
-			echo "$command\n";
-			passthru($command);
+		if (is_dir($dest_co)) {
+			git_check_mirrors($dest_co, $source);
+			if (isset($options['revision'])){
+				chdir($dest_co);
+				$command = "git checkout --detach ".$options['revision'];
+				echo "$command\n";
+				passthru($command);
+				chdir($curdir);
+			}
+			elseif ($branche !== 'master') {
+				chdir($dest_co);
+				$command = "git checkout $branche";
+				echo "$command\n";
+				passthru($command);
+				chdir($curdir);
+			}
+			if ($dest_co !== $dest) {
+				$command = "mv $dest {$dest_co}.old && mv $dest_co $dest && rm -fR {$dest_co}.old";
+				echo "$command\n";
+				passthru($command);
+			}
 		}
 		echo "\n";
 	}
@@ -725,14 +760,13 @@ function git_read($dest, $options){
 	if (!is_dir("$dest/.git"))
 		return "";
 
-	$curdir = getcwd();
-	chdir($dest);
-
 	$remotes = git_get_remotes($dest);
 	if (!$remotes){
-		chdir($curdir);
 		return "";
 	}
+
+	$curdir = getcwd();
+	chdir($dest);
 
 	if (isset($remotes['origin'])) {
 		$source = $remotes['origin'];
@@ -811,6 +845,38 @@ function git_get_remotes($dir_repo){
 		}
 	}
 	return $remotes;
+}
+
+function git_get_urls_mirrors($url_source) {
+	$url_mirrors = [];
+	foreach ($GLOBALS['git_mirrors'] as $url_git => $mirrors) {
+		// si on a un mirroir connu pour cette source, on verifie les remotes
+		if (strpos($url_source, $url_git) === 0) {
+			foreach ($mirrors as $mirror) {
+				$url_mirrors[] = $mirror . substr($url_source, strlen($url_git));
+			}
+		}
+	}
+	return $url_mirrors;
+}
+
+function git_check_mirrors($dir_repo, $url_source) {
+	if ($url_mirrors = git_get_urls_mirrors($url_source)) {
+		$remotes = git_get_remotes($dir_repo);
+		$remote_name = "mirror";
+		$remote_cpt = '';
+		foreach ($url_mirrors as $url_mirror) {
+			if (!in_array($url_mirror, $remotes)) {
+				// on ajoute le mirroir en remote
+				while(!empty($remotes[$remote_name . $remote_cpt])) {
+					$remote_cpt = intval($remote_cpt) + 1;
+				}
+				$command = "git remote add {$remote_name}{$remote_cpt} $url_mirror";
+				echo "\n$command\n";
+				passthru("cd $dir_repo && $command");
+			}
+		}
+	}
 }
 
 
