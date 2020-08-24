@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 /**
- * v 1.2.0
+ * v 1.2.1
  * checkout.php --help
  * 
  * installation Windows: 
@@ -23,6 +23,7 @@ define("_MAX_LOG_LENGTH",100);
  */
 $git_mirrors = [
 	// 'https://www.git_origin.org/' => [ 'https://www.git_mirror1.org/', 'https://www.git_mirror2.org/',... ]
+	// 'https://git.spip.net/' => [ 'https://git-mirror.spip.net/' ],
 ];
 
 list($methode,$source,$dest,$options) = interprete_commande($argv);
@@ -390,6 +391,8 @@ function spip_checkout($source, $dest, $options) {
 							break;
 					}
 					$e_source = "https://github.com/$user/$repo.git";
+					// renommage a la volee
+					$e_source = str_replace( ['https://github.com/marcimat/bigup'], [ $url_repo_base . 'bigup'], $e_source);
 					$e_methode = "git";
 				}
 			}
