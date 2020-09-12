@@ -348,6 +348,7 @@ function spip_checkout($source, $dest, $options) {
 	if (file_exists($f = $file_externals_master) or file_exists($f = $file_externals)) {
 		$externals = parse_ini_file($f, true);
 		foreach ($externals as $external) {
+
 			$e_methode = $external['remote'];
 			$e_source = $external['url'];
 			$e_dest = $dest . "/" . $external['path'];
@@ -363,9 +364,19 @@ function spip_checkout($source, $dest, $options) {
 					$e_source = $url_repo_base . end($e_source) . '.git';
 					$e_methode = "git";
 				}
+				elseif (strpos($e_source, "svn://zone.spip.org/spip-zone/_core_/tags/") === 0) {
+					// zone.spip.org/spip-zone/_core_/tags/spip-3.2.7/plugins/aide
+					$e_source = explode("_core_/tags/", $e_source);
+					$e_source = explode('/', end($e_source));
+					$e_branche = array_shift($e_source);
+					$e_branche = str_replace('-', '/', $e_branche);
+					array_shift($e_source);
+					$e_source = $url_repo_base . implode('/', $e_source) . '.git';
+					$e_methode = "git";
+				}
 				elseif (strpos($e_source, "https://zone.spip.net/trac/spip-zone/browser/_core_/branches/spip-3.2/plugins") === 0) {
 					$e_source = explode("_core_/branches/", $e_source);
-					$e_source = explode('/', $e_source);
+					$e_source = explode('/', end($e_source));
 					$e_branche = array_shift($e_source);
 					array_shift($e_source);
 					$e_source = $url_repo_base . implode('/', $e_source) . '.git';
