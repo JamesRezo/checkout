@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 /**
- * v 1.5.0
+ * v 1.5.1
  * 
  * checkout --help
  * 
@@ -331,8 +331,7 @@ function erreur_repertoire_existant($erreur, $dir, $delete = true) {
  */
 function spip_checkout($source, $dest, $options) {
 
-	$https_repo_base = "https://git.spip.net/spip/";
-	$url_repo_base = $https_repo_base;
+	$url_repo_base = "https://git.spip.net/spip/";
 	if ($source and strpos($source, "git@git.spip.net") !== false) {
 		$url_repo_base = "git@git.spip.net:spip/";
 	}
@@ -354,44 +353,73 @@ function spip_checkout($source, $dest, $options) {
 	if (!file_exists("$dest/$file_plugins_dist")) {
 		spip_checkout_plugins_old_version($url_repo_base, $dest, $branche);
 	} else {
-		// Historique avant le 27 09 2020, les branches SPIP des plugins dist étaient '3.2'
-		if ($branche === 'master') {
-			$e_branche = $branche;
-		} else {
-			$e_branche = "spip-" . $branche;
-		}
 		$json = file_get_contents("$dest/$file_plugins_dist");
 		$json = json_decode($json, true);
-		foreach ($json as $external) {
-			$e_dest = $dest . "/" . $external['path'];
-			$e_source = $external['source'];
-			$e_source = str_replace($https_repo_base, $url_repo_base, $e_source);
-			$d = dirname($e_dest);
-			if (!is_dir($d)) {
-				mkdir($d);
-			}
-			echo "checkout git -b{$e_branche} $e_source $e_dest\n";
-			echo run_checkout('git' , $e_source, $e_dest, ['branche' => $e_branche]);
-		}
+		spip_checkout_plugins_json($json, $url_repo_base, $dest, $branche);
 	}
+}
+
+function spip_checkout_plugins_json($json, $url_repo_base, $dest, $branche) {
+	$https_repo_base = "https://git.spip.net/spip/";
+	// Historique avant le 27 09 2020, les branches SPIP des plugins dist étaient '3.2'
+	if ($branche === 'master') {
+		$e_branche = $branche;
+	} else {
+		$e_branche = "spip-" . $branche;
+	}
+
+	foreach ($json as $external) {
+		$e_dest = $dest . "/" . $external['path'];
+		$e_source = $external['source'];
+		$e_source = str_replace($https_repo_base, $url_repo_base, $e_source);
+		$d = dirname($e_dest);
+		if (!is_dir($d)) {
+			mkdir($d);
+		}
+		echo "checkout git -b{$e_branche} $e_source $e_dest\n";
+		echo run_checkout('git' , $e_source, $e_dest, ['branche' => $e_branche]);
+	}
+
 }
 
 function spip_checkout_plugins_old_version($url_repo_base, $dest, $branche) {
 
 	$file_externals = '.gitsvnextmodules';
+	$file_plugins_dist = 'plugins-dist.json';
 	$file_externals_master = "$dest/$file_externals";
-	if (!file_exists($file_externals)) {
-		if (!file_exists($file_externals_master)) {
-			// on commence par checkout SPIP en master pour recuperer le file externals
-			echo run_checkout('git', $url_repo_base . 'spip.git', $dest, ['branche' => 'master']);
-			if (file_exists($file_externals_master)) {
-				@copy($file_externals_master, $file_externals);
-			}
+	$file_plugins_dist_master = "$dest/$file_plugins_dist";
+
+	if (
+		!file_exists($file_plugins_dist) 
+		and !file_exists($file_plugins_dist_master)
+		and !file_exists($file_externals)
+		and !file_exists($file_externals_master)
+	) {
+		// on commence par checkout SPIP en master pour recuperer le plugins-dist.json (ou anciennement file externals)
+		echo run_checkout('git', $url_repo_base . 'spip.git', $dest, ['branche' => 'master']);
+		if (file_exists($file_plugins_dist_master)) {
+			@copy($file_plugins_dist_master, $file_plugins_dist);
+		} elseif (file_exists($file_externals_master)) {
+			@copy($file_externals_master, $file_externals);
 		}
+		// on checkout SPIP... une 2è ou 3è fois sur la bonne branche
+		echo run_checkout('git', $url_repo_base . 'spip.git', $dest, ['branche' => $branche]);
 	}
 
-	// on checkout SPIP... une 2è ou 3è fois sur la bonne branche
-	echo run_checkout('git', $url_repo_base . 'spip.git', $dest, ['branche' => $branche]);
+	// version moderne :)
+	if (file_exists($f = $file_plugins_dist) or file_exists($f = $file_plugins_dist_master)) {
+		echo "Obtention des plugins-dist via $file_plugins_dist (master) ...\n";
+		$json = file_get_contents("$dest/$file_plugins_dist");
+		$json = json_decode($json, true);
+		if (in_array($branche, ["3.2", "3.1", "3.0"])) {
+			unset($json['bigup']);
+		}
+		spip_checkout_plugins_json($json, $url_repo_base, $dest, $branche);
+		return;
+	}
+
+	// old school
+	echo "Obtention des plugins-dist via $file_externals (master) ...\n";
 	if (file_exists($f = $file_externals_master) or file_exists($f = $file_externals)) {
 		$externals = parse_ini_file($f, true);
 		foreach ($externals as $external) {
