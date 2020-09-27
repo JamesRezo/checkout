@@ -320,9 +320,9 @@ function erreur_repertoire_existant($erreur, $dir, $delete = true) {
  */
 function spip_checkout($source, $dest, $options) {
 
-	$url_repo_base = "https://git.spip.net/SPIP/";
+	$url_repo_base = "https://git.spip.net/spip/";
 	if ($source and strpos($source, "git@git.spip.net") !== false) {
-		$url_repo_base = "git@git.spip.net:SPIP/";
+		$url_repo_base = "git@git.spip.net:spip/";
 	}
 
 	if (!$dest) $dest = 'spip';
