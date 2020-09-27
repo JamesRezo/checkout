@@ -376,15 +376,7 @@ function spip_checkout($source, $dest, $options) {
 					$e_source = $url_repo_base . implode('/', $e_source) . '.git';
 					$e_methode = "git";
 				}
-				elseif (strpos($e_source, "https://zone.spip.net/trac/spip-zone/browser/_core_/branches/spip-3.2/plugins") === 0) {
-					$e_source = explode("_core_/branches/", $e_source);
-					$e_source = explode('/', end($e_source));
-					$e_branche = array_shift($e_source);
-					array_shift($e_source);
-					$e_source = $url_repo_base . implode('/', $e_source) . '.git';
-					$e_methode = "git";
-				}
-				elseif(strpos($e_source, "https://github.com/") === 0) {
+				elseif (strpos($e_source, "https://github.com/") === 0) {
 					if (in_array($branche, ["spip-3.2", "spip-3.1", "spip-3.0"])) {
 						continue;
 					}
