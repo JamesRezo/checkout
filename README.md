@@ -2,15 +2,15 @@
 
 ## syntaxe type : 
 ```
-checkout.php [methode] [-rRevision] [-bBranche] repoSource dirDest
+checkout [methode] [-rRevision] [-bBranche] repoSource dirDest
 ```
 
 ## Installation : 
 - Linux / MacOS : 
 	- cloner/télécharger le dossier *checkout* dans un répertoire de la machine, par exemple */home/toto/checkout* (Linux) ou */Users/toto/checkout* (MacOS)
-	- intégrer le chemin du fichier *checkout.php* dans le *$PATH* de la machine ce qui peut être fait, par exemple, avec un lien symbolique dans */usr/bin* par la commande :
+	- intégrer le chemin du fichier *checkout* dans le *$PATH* de la machine ce qui peut être fait, par exemple, avec un lien symbolique dans */usr/bin* par la commande :
 ```
-sudo ln -s /home/toto/checkout/checkout.php /usr/bin/checkout.php
+sudo ln -s /home/toto/checkout/checkout /usr/bin/checkout
 ```
 - Windows : 
 	- s'assurer que GitBash est bien installé sur la machine (voir par exemple https://gitforwindows.org/).
@@ -18,70 +18,70 @@ sudo ln -s /home/toto/checkout/checkout.php /usr/bin/checkout.php
 	- cloner/télécharger le dossier *checkout* dans un répertoire de la machine, par exemple *c:\laragon\bin\checkout* ou *c:\xamp\checkout*
 	- intégrer le chemin du dossier checkout dans le PATH de la machine : 
 	Panneau de configuration > Système > Avancé > Variables d'environnement > variables système : Variable Path ⇒ Modifier > ajouter en fin de chaîne ```;c:\laragon\bin\checkout```
-- Tous les OS : tester que l'utilitaire checkout.php est opérationnel : 
+- Tous les OS : tester que l'utilitaire checkout est opérationnel : 
 ```
-checkout.php --help
+checkout --help
 ```
 doit retourner le *help* de l'utilitaire
 
 ## Exemples :
 ### Checkout SPIP (core+externals) :
 - installer la version de dev de SPIP + tous les plugins-dist + squelettes-dist dans un répertoire *dossier_destination* (ne doit pas exister):
-	- ouvrir une invite de commande dans le dossier où doit être installé le SPIP et appeler le script checkout.php avec l'option `spip`
+	- ouvrir une invite de commande dans le dossier où doit être installé le SPIP et appeler le script checkout avec l'option `spip`
 ```
-checkout.php spip dossier_destination
+checkout spip dossier_destination
 ```
 - installer la version 3.2 de SPIP + tous les plugins-dist + squelettes-dist :
 ```
-checkout.php spip -bspip-3.2 dossier_destination
+checkout spip -bspip-3.2 dossier_destination
 ```
 - installation en SSH pour les commandes git à la place de HTTPS (permet de faciliter les commits à partir de cette installation) :
 ```
-checkout.php spip -bmaster git@git.spip.net dossier_destination
+checkout spip -bmaster git@git.spip.net dossier_destination
 ```
 *NB :* sous Windows les utilisateurs de Putty devront d'abord faire une tentative de connexion sur `git@git.spip.net:SPIP/spip.git` afin d'intégrer "l'empreinte ssh" de git.spip.net aux serveurs autorisés.
 
-### Mise à jour d'un SPIP installé avec checkout.php:
+### Mise à jour d'un SPIP installé avec checkout:
 - en général il suffit de rejouer la commande d'installation : par exemple
 ```
-checkout.php spip dossier_destination
+checkout spip dossier_destination
 ```
-### montée de version d'un SPIP installé avec checkout.php:
+### montée de version d'un SPIP installé avec checkout:
 - il suffit de jouer la commande en indiquant la nouvelle version dans le paramètre *-b* :
 par exemple pour passer un SPIP en version de dev (branche *master* donc)
 ```
-checkout.php spip -bmaster dossier_destination
+checkout spip -bmaster dossier_destination
 ```
 le script va faire la mise à jour des fichiers puis passer sur la version master non seulement pour le core mais aussi pour squelettes-dist et tous les plugins-dist
 
 ### Checkout un repo :
 ```
-checkout.php svn -r1234 svn://example.org/repo dossier_destination
+checkout svn -r1234 svn://example.org/repo dossier_destination
 ```
 ```
-checkout.php git -re1ad434 git://example.org/repo dossier_destination
+checkout git -re1ad434 git://example.org/repo dossier_destination
 ```
 ```
-checkout.php git -re1ad434 -bmaster git://example.org/repo dossier_destination
+checkout git -re1ad434 -bmaster git://example.org/repo dossier_destination
 ```
 ```
-checkout.php ftp http://example.org/paquet.zip dossier_destination
+checkout ftp http://example.org/paquet.zip dossier_destination
 ```
 
 ### Recuperer la commande correspondant a un repo deja checkout
 ```
-checkout.php --read dossier_destination
+checkout --read dossier_destination
 ```
 
 ### Voir les logs des mises a jour disponibles pour un repertoire
 ```
-checkout.php --logupdate dossier_destination
+checkout --logupdate dossier_destination
 ```
 
 Si le repo est en git et que le repo est DETACHED,
 indiquer une branche pour se limiter aux mises à jour disponibles sur la branche qui vous interesse :
 ```
-checkout.php --logupdate -bmaster dossier_destination
+checkout --logupdate -bmaster dossier_destination
 ```
 
 #### Références :
