@@ -646,7 +646,7 @@ function git_checkout($source,$dest,$options){
 			erreur_repertoire_existant("$dest n'est pas au format GIT", $dest, false);
 			$checkout_needed = true;
 		}
-		elseif ($infos['source']!==$source) {
+		elseif (strtolower($infos['source']) !== strtolower($source)) {
 			erreur_repertoire_existant("$dest n'est pas sur le bon repository GIT", $dest, false);
 			$checkout_needed = true;
 		}
