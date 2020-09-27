@@ -1,7 +1,8 @@
 #!/usr/bin/env php
 <?php
 /**
- * v 1.3.1
+ * v 1.4.0
+ * 
  * checkout --help
  * 
  * installation Windows: 
@@ -10,6 +11,13 @@
  *     . à partir de là on peut utiliser la commande: `checkout ...`
  *     exemple: `checkout spip -bmaster mon_dossier`
  * 
+ * Historique
+ * ----------
+ * 
+ * 1.4.0 : 
+ * - commande 'checkout' de préférence (checkout.php continue de fonctionner)
+ * - adaptation aux changements des branches et tags SPIP / plugins-dist du 27 09 2020
+ * - on met le git de SPIP en minuscule par défaut, mais on tolère l’ancien nommage de l’url.
  */
 
 date_default_timezone_set("Europe/Paris");
