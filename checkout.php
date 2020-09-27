@@ -405,7 +405,7 @@ function spip_checkout($source, $dest, $options) {
 			if (!is_dir($d)) {
 				mkdir($d);
 			}
-			echo "checkout.php $e_methode -b{$e_branche} $e_source $e_dest\n";
+			echo "checkout $e_methode -b{$e_branche} $e_source $e_dest\n";
 			echo run_checkout($e_methode , $e_source, $e_dest, ['branche' => $e_branche]);
 		}
 	}
