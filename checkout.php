@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 /**
- * v 1.4.0
+ * v 1.4.1
  * 
  * checkout --help
  * 
@@ -389,7 +389,7 @@ function spip_checkout($source, $dest, $options) {
 					$e_methode = "git";
 				}
 				elseif (strpos($e_source, "https://github.com/") === 0) {
-					if (in_array($branche, ["spip-3.2", "spip-3.1", "spip-3.0"])) {
+					if (in_array($branche, ["3.2", "3.1", "3.0"])) {
 						continue;
 					}
 					$e_source = explode("//github.com/", $e_source);
