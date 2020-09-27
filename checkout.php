@@ -357,7 +357,11 @@ function spip_checkout($source, $dest, $options) {
 			$e_source = $external['url'];
 			$e_dest = $dest . "/" . $external['path'];
 			// Historique avant le 27 09 2020, les branches SPIP des plugins dist étaient '3.2'
-			$e_branche = "spip-" . $branche;
+			if ($branche === 'master') {
+				$e_branche = $branche;
+			} else {
+				$e_branche = "spip-" . $branche;
+			}
 
 			// remplacer les sources SVN _core_ par le git.spip.net si possible
 			if ($e_methode == 'svn') {
