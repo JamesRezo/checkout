@@ -1,8 +1,8 @@
 #!/usr/bin/env php
 <?php
 /**
- * v 1.2.1
- * checkout.php --help
+ * v 1.3.1
+ * checkout --help
  * 
  * installation Windows: 
  *     . necessite le fichier checkout.bat dans le même dossier que checkout.php
@@ -78,7 +78,7 @@ Exemples :
 
 # Checkout SPIP (core+externals) :
   $command spip
-  $command spip -bspip-3.2
+  $command spip -b3.2
 
 # Recuperer la commande correspondant a un repo deja checkout
   $command --read dest
@@ -329,6 +329,10 @@ function spip_checkout($source, $dest, $options) {
 	$branche = 'master';
 	if (isset($options['branche'])) {
 		$branche = $options['branche'];
+		// Historique avant le 27 09 2020, les branches SPIP étaient 'spip-3.2'
+		if (strpos($branche, 'spip-') === 0) {
+			$branche = substr($branche, 5);
+		}
 	}
 
 	$file_externals = '.gitsvnextmodules';
@@ -352,10 +356,8 @@ function spip_checkout($source, $dest, $options) {
 			$e_methode = $external['remote'];
 			$e_source = $external['url'];
 			$e_dest = $dest . "/" . $external['path'];
-			$e_branche = $branche;
-			if (strncmp($e_branche, "spip-", 5) === 0) {
-				$e_branche = substr($e_branche, 5);
-			}
+			// Historique avant le 27 09 2020, les branches SPIP des plugins dist étaient '3.2'
+			$e_branche = "spip-" . $branche;
 
 			// remplacer les sources SVN _core_ par le git.spip.net si possible
 			if ($e_methode == 'svn') {
