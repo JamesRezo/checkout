@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 /**
- * v 1.5.1
+ * v 1.5.2
  * 
  * checkout --help
  * 
@@ -90,6 +90,7 @@ Exemples :
 # Checkout SPIP (core+externals) :
   $command spip
   $command spip -b3.2
+  $command spip -bv3.2.7
 
 # Recuperer la commande correspondant a un repo deja checkout
   $command --read dest
@@ -337,14 +338,8 @@ function spip_checkout($source, $dest, $options) {
 	}
 
 	if (!$dest) $dest = 'spip';
-	$branche = 'master';
-	if (isset($options['branche'])) {
-		$branche = $options['branche'];
-		// Historique avant le 27 09 2020, les branches SPIP étaient 'spip-3.2'
-		if (strpos($branche, 'spip-') === 0) {
-			$branche = substr($branche, 5);
-		}
-	}
+	$branche = isset($options['branche']) ? $options['branche'] : 'master';
+	$branche = spip_branche_or_tag_name($branche);
 
 	// on checkout SPIP sur la bonne branche ou tag, une première fois
 	echo run_checkout('git', $url_repo_base . 'spip.git', $dest, ['branche' => $branche]);
@@ -359,11 +354,33 @@ function spip_checkout($source, $dest, $options) {
 	}
 }
 
+
+function spip_branche_or_tag_name($branche) {
+	// Historique avant le 27 09 2020, les branches SPIP étaient 'spip-3.2'
+	if (strpos($branche, 'spip-') === 0) {
+		$branche = substr($branche, 5);
+	}
+	// Tag sans le 'v' ?
+	if (
+		$branche[0] !== 'v' 
+		&& count(explode('.', $branche)) > 2 
+		// branches anciennes assez spécifiques...
+		&& !in_array($branche, ['1.9.1', '1.9.2'])
+	) {
+		$branche = 'v' . $branche;
+	}
+	return $branche;
+}
+
 function spip_checkout_plugins_json($json, $url_repo_base, $dest, $branche) {
 	$https_repo_base = "https://git.spip.net/spip/";
 	// Historique avant le 27 09 2020, les branches SPIP des plugins dist étaient '3.2'
 	if ($branche === 'master') {
 		$e_branche = $branche;
+	// un tag
+	} elseif ($branche[0] === 'v') {
+		$e_branche = "spip/" . substr($branche, 1);
+	// une branche
 	} else {
 		$e_branche = "spip-" . $branche;
 	}
