@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 /**
- * v 1.5.2
+ * v 1.5.3
  *
  * checkout --help
  *
@@ -259,6 +259,9 @@ function read_source($dest, $options){
 	foreach ($methodes as $m){
 		if (function_exists($f = $m . "_read")
 			and $res = $f($dest, $options)){
+			if (is_array($res)){
+				$res['methode'] = $m;
+			}
 			return $res;
 		}
 	}
@@ -331,9 +334,9 @@ function erreur_repertoire_existant($erreur, $dir, $delete = true){
  */
 function spip_checkout($source, $dest, $options){
 
-	$url_repo_base = "https://git.spip.net/spip/";
+	$ssh = false;
 	if ($source and strpos($source, "git@git.spip.net")!==false){
-		$url_repo_base = "git@git.spip.net:spip/";
+		$ssh = true;
 	}
 
 	if (!$dest){
@@ -341,6 +344,18 @@ function spip_checkout($source, $dest, $options){
 	}
 	$branche = isset($options['branche']) ? $options['branche'] : 'master';
 	$branche = spip_branche_or_tag_name($branche);
+
+	if (is_dir($dest)){
+		$infos = read_source($dest, array('format' => 'assoc'));
+		if (!empty($infos['source']) and strpos($infos['source'], "git@git.spip.net")!==false){
+			$ssh = true;
+		}
+	}
+
+	$url_repo_base = "https://git.spip.net/spip/";
+	if ($ssh){
+		$url_repo_base = "git@git.spip.net:spip/";
+	}
 
 	// on checkout SPIP sur la bonne branche ou tag, une première fois
 	echo run_checkout('git', $url_repo_base . 'spip.git', $dest, ['branche' => $branche]);
