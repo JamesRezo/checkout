@@ -2,29 +2,29 @@
 <?php
 /**
  * v 1.5.2
- * 
+ *
  * checkout --help
- * 
- * installation Windows: 
+ *
+ * installation Windows:
  *     . necessite le fichier checkout.bat dans le même dossier que checkout.php
  *     . déclarer ce dossier dans le PATH de la machine
  *     . à partir de là on peut utiliser la commande: `checkout ...`
  *     exemple: `checkout spip -bmaster mon_dossier`
- * 
+ *
  * Historique
  * ----------
- * 
+ *
  * 1.5.0 :
  * - On prend prioritairement pour 'checkout spip' un fichier plugins-dist.json s’il est présent.
- * 
- * 1.4.0 : 
+ *
+ * 1.4.0 :
  * - commande 'checkout' de préférence (checkout.php continue de fonctionner)
  * - adaptation aux changements des branches et tags SPIP / plugins-dist du 27 09 2020
  * - on met le git de SPIP en minuscule par défaut, mais on tolère l’ancien nommage de l’url.
  */
 
 date_default_timezone_set("Europe/Paris");
-define("_MAX_LOG_LENGTH",100);
+define("_MAX_LOG_LENGTH", 100);
 
 /**
  * Possibilite de definir des mirroirs
@@ -37,41 +37,38 @@ $git_mirrors = [
 	// 'https://git.spip.net/' => [ 'https://git-mirror.spip.net/' ],
 ];
 
-list($methode,$source,$dest,$options) = interprete_commande($argv);
+list($methode, $source, $dest, $options) = interprete_commande($argv);
 
-if (!$methode and $source) {
-	if ($methode = autodetermine_methode($source)) {
-		echo "Checkout methode ". strtoupper($methode) . "\n";
+if (!$methode and $source){
+	if ($methode = autodetermine_methode($source)){
+		echo "Checkout methode " . strtoupper($methode) . "\n";
 	}
 }
 
-if ((count($argv)>1 and $argv[1]=="--help") or (!$methode and !$dest)) {
+if ((count($argv)>1 and $argv[1]=="--help") or (!$methode and !$dest)){
 	checkout_help();
 	exit;
 }
 
 if (getenv('FORCE_RM_AND_CHECKOUT_AGAIN_BAD_DEST')
-	or isset($options['forcerm'])) {
+	or isset($options['forcerm'])){
 	define('_FORCE_RM_AND_CHECKOUT_AGAIN_BAD_DEST', true);
-}
-else {
+} else {
 	define('_FORCE_RM_AND_CHECKOUT_AGAIN_BAD_DEST', false);
 }
 
 if (isset($options['read'])){
-	echo read_source($dest,$options), "\n";
-}
-elseif (isset($options['logupdate'])){
-	echo logupdate_source($dest,$options), "\n";
-}
-else {
+	echo read_source($dest, $options), "\n";
+} elseif (isset($options['logupdate'])) {
+	echo logupdate_source($dest, $options), "\n";
+} else {
 	echo run_checkout($methode, $source, $dest, $options);
 }
 
 /**
  * Aide
  */
-function checkout_help() {
+function checkout_help(){
 
 	$command = basename($GLOBALS['argv'][0]);
 
@@ -115,16 +112,14 @@ help;
  * @param array $options
  * @return string
  */
-function run_checkout($methode, $source, $dest, $options) {
+function run_checkout($methode, $source, $dest, $options){
 	if (!$checkout = get_checkout_function($methode)){
 		return "Methode $methode inconnue pour checkout $source vers $dest\n";
-	}
-	else {
+	} else {
 		$res = $checkout($source, $dest, $options);
-		if (strncmp($res,'OK ', 3) === 0) {
+		if (strncmp($res, 'OK ', 3)===0){
 			return ".";
-		}
-		else {
+		} else {
 			return $res . "\n";
 		}
 	}
@@ -149,26 +144,25 @@ function get_checkout_function($methode){
  * @param string $source
  * @return string
  */
-function autodetermine_methode($source) {
+function autodetermine_methode($source){
 
-	if (substr($source,-4) === '.git') {
+	if (substr($source, -4)==='.git'){
 		return "git";
 	}
-	if (strpos($source, "://") === false) {
+	if (strpos($source, "://")===false){
 		$host = explode(":", $source)[0];
-		if (strpos($host, '@') !== false) {
+		if (strpos($host, '@')!==false){
 			return 'git';
 		}
-	}
-	else {
+	} else {
 		$parts = parse_url($source);
 		// git:// svn:// ftp:// -> easy
-		if (isset($parts['scheme']) and get_checkout_function($parts['scheme'])) {
+		if (isset($parts['scheme']) and get_checkout_function($parts['scheme'])){
 			return $parts['scheme'];
 		}
 
 		// checkout en https?://
-		if (isset($parts['host']) and $host = $parts['host']) {
+		if (isset($parts['host']) and $host = $parts['host']){
 			// on reference quelques serveurs connus en git et en svn
 			$known_hosts = [
 				'svn' => [
@@ -182,11 +176,11 @@ function autodetermine_methode($source) {
 				],
 			];
 			// serveur git connu ou commencant par git. comme git.spip.net
-			if (in_array($host, $known_hosts['git']) or strpos($host, "git.") === 0) {
+			if (in_array($host, $known_hosts['git']) or strpos($host, "git.")===0){
 				return 'git';
 			}
 			// serveur git connu ou commencant par svn. comme git.spip.net
-			if (in_array($host, $known_hosts['svn'])) {
+			if (in_array($host, $known_hosts['svn'])){
 				return 'svn';
 			}
 		}
@@ -205,49 +199,52 @@ function interprete_commande($args){
 	$GLOBALS['script'] = array_shift($args); // inutile : le nom du script
 	$methode = "";
 	// peut etre pas de methode si on demande un --read dest
-	if (!strncmp(reset($args),'-',1)==0
-	  and !preg_match(",\W,", reset($args))
-	  and get_checkout_function(reset($args))){
+	if (!strncmp(reset($args), '-', 1)==0
+		and !preg_match(",\W,", reset($args))
+		and get_checkout_function(reset($args))){
 		$methode = array_shift($args);
 	}
 
 	// peut etre pas de dest si on fait un checkout avec un dest implicite
 	$dest = '';
-	if (!strncmp(end($args),'-',1)==0 and strpos(end($args),"://") === false and strpos(end($args), '@') === false){
+	if (!strncmp(end($args), '-', 1)==0 and strpos(end($args), "://")===false and strpos(end($args), '@')===false){
 		$dest = array_pop($args);
-		$dest = rtrim($dest,'/');
+		$dest = rtrim($dest, '/');
 	}
 
 	$source = "";
 	// peut etre pas de source si on demande un --read dest
-	if (!strncmp(end($args),'-',1)==0){
+	if (!strncmp(end($args), '-', 1)==0){
 		$source = array_pop($args);
-		$source = rtrim($source,'/');
+		$source = rtrim($source, '/');
 	}
 
 	$options = array();
-	foreach($args as $a){
-		if (strncmp($a,'-r',2)==0)
-			$options['revision'] = substr($a,2);
-		elseif (strncmp($a,'--revision',10)==0)
-			$options['revision'] = substr($a,10);
-		elseif (strncmp($a,'--forcerm',6)==0)
+	foreach ($args as $a){
+		if (strncmp($a, '-r', 2)==0){
+			$options['revision'] = substr($a, 2);
+		} elseif (strncmp($a, '--revision', 10)==0) {
+			$options['revision'] = substr($a, 10);
+		} elseif (strncmp($a, '--forcerm', 6)==0) {
 			$options['forcerm'] = true;
-		elseif (strncmp($a,'--read',6)==0)
+		} elseif (strncmp($a, '--read', 6)==0) {
 			$options['read'] = true;
-		elseif (strncmp($a,'--logupdate',6)==0)
+		} elseif (strncmp($a, '--logupdate', 6)==0) {
 			$options['logupdate'] = true;
-		elseif (strncmp($a,'-b',2)==0)
-			$options['branche'] = substr($a,2);
-		else {
-			if (!isset($options['literal'])) $options['literal'] = array();
+		} elseif (strncmp($a, '-b', 2)==0) {
+			$options['branche'] = substr($a, 2);
+		} else {
+			if (!isset($options['literal'])){
+				$options['literal'] = array();
+			}
 			$options['literal'][] = $a;
 		}
 	}
-	if (isset($options['literal']) AND count($options['literal']))
-		$options['literal'] = implode(' ',$options['literal']);
+	if (isset($options['literal']) and count($options['literal'])){
+		$options['literal'] = implode(' ', $options['literal']);
+	}
 
-	return array($methode,$source,$dest,$options);
+	return array($methode, $source, $dest, $options);
 }
 
 
@@ -257,12 +254,13 @@ function interprete_commande($args){
  * @param array $options
  * @return string
  */
-function read_source($dest,$options){
-	$methodes = array("svn","git","ftp");
-	foreach($methodes as $m){
-		if (function_exists($f=$m."_read")
-	  AND $res = $f($dest,$options))
+function read_source($dest, $options){
+	$methodes = array("svn", "git", "ftp");
+	foreach ($methodes as $m){
+		if (function_exists($f = $m . "_read")
+			and $res = $f($dest, $options)){
 			return $res;
+		}
 	}
 	return "# source de $dest inconnue";
 }
@@ -273,23 +271,24 @@ function read_source($dest,$options){
  * @param array $options
  * @return string
  */
-function logupdate_source($dest,$options){
-	$methodes = array("svn","git");
-	foreach($methodes as $m){
-		if (function_exists($f=$m."_read")
-	  AND $res = $f($dest,array('format'=>'assoc'))
-		AND function_exists($f=$m."_log")){
+function logupdate_source($dest, $options){
+	$methodes = array("svn", "git");
+	foreach ($methodes as $m){
+		if (function_exists($f = $m . "_read")
+			and $res = $f($dest, array('format' => 'assoc'))
+			and function_exists($f = $m . "_log")){
 			$o = [
-				"from"=>$res['revision']
+				"from" => $res['revision']
 			];
-			if (isset($options['branche'])) {
+			if (isset($options['branche'])){
 				$o['branche'] = $options['branche'];
 			}
-			$log = $f($dest,$o);
-			if (strlen($log))
-				return "MAJ dispo pour ". $res['source'] . " :\n$log\n";
-			else
-				return "";//"# Aucune maj pour " .$res['source'];
+			$log = $f($dest, $o);
+			if (strlen($log)){
+				return "MAJ dispo pour " . $res['source'] . " :\n$log\n";
+			} else {
+				return "";
+			}//"# Aucune maj pour " .$res['source'];
 		}
 	}
 	return "";//"# Pas de log disponible pour $dest";
@@ -302,15 +301,15 @@ function logupdate_source($dest,$options){
  * @param string $dir
  * @param bool $delete
  */
-function erreur_repertoire_existant($erreur, $dir, $delete = true) {
+function erreur_repertoire_existant($erreur, $dir, $delete = true){
 	echo "\n/!\ " . $erreur;
-	if (_FORCE_RM_AND_CHECKOUT_AGAIN_BAD_DEST) {
+	if (_FORCE_RM_AND_CHECKOUT_AGAIN_BAD_DEST){
 		$dir = trim($dir);
 		if (strpos($dir, "/")!==0
-		  and strpos($dir, ".")!==0
-		  and strpos($dir, "..")===false) {
+			and strpos($dir, ".")!==0
+			and strpos($dir, "..")===false){
 			echo "...SUPPRESION $dir";
-			if ($delete) {
+			if ($delete){
 				exec("rm -fR $dir");
 			}
 			return;
@@ -330,14 +329,16 @@ function erreur_repertoire_existant($erreur, $dir, $delete = true) {
  * @param $dest
  * @param $options
  */
-function spip_checkout($source, $dest, $options) {
+function spip_checkout($source, $dest, $options){
 
 	$url_repo_base = "https://git.spip.net/spip/";
-	if ($source and strpos($source, "git@git.spip.net") !== false) {
+	if ($source and strpos($source, "git@git.spip.net")!==false){
 		$url_repo_base = "git@git.spip.net:spip/";
 	}
 
-	if (!$dest) $dest = 'spip';
+	if (!$dest){
+		$dest = 'spip';
+	}
 	$branche = isset($options['branche']) ? $options['branche'] : 'master';
 	$branche = spip_branche_or_tag_name($branche);
 
@@ -345,7 +346,7 @@ function spip_checkout($source, $dest, $options) {
 	echo run_checkout('git', $url_repo_base . 'spip.git', $dest, ['branche' => $branche]);
 
 	$file_plugins_dist = 'plugins-dist.json';
-	if (!file_exists("$dest/$file_plugins_dist")) {
+	if (!file_exists("$dest/$file_plugins_dist")){
 		spip_checkout_plugins_old_version($url_repo_base, $dest, $branche);
 	} else {
 		$json = file_get_contents("$dest/$file_plugins_dist");
@@ -355,51 +356,51 @@ function spip_checkout($source, $dest, $options) {
 }
 
 
-function spip_branche_or_tag_name($branche) {
+function spip_branche_or_tag_name($branche){
 	// Historique avant le 27 09 2020, les branches SPIP étaient 'spip-3.2'
-	if (strpos($branche, 'spip-') === 0) {
+	if (strpos($branche, 'spip-')===0){
 		$branche = substr($branche, 5);
 	}
 	// Tag sans le 'v' ?
 	if (
-		$branche[0] !== 'v' 
-		&& count(explode('.', $branche)) > 2 
+		$branche[0]!=='v'
+		&& count(explode('.', $branche))>2
 		// branches anciennes assez spécifiques...
 		&& !in_array($branche, ['1.9.1', '1.9.2'])
-	) {
+	){
 		$branche = 'v' . $branche;
 	}
 	return $branche;
 }
 
-function spip_checkout_plugins_json($json, $url_repo_base, $dest, $branche) {
+function spip_checkout_plugins_json($json, $url_repo_base, $dest, $branche){
 	$https_repo_base = "https://git.spip.net/spip/";
 	// Historique avant le 27 09 2020, les branches SPIP des plugins dist étaient '3.2'
-	if ($branche === 'master') {
+	if ($branche==='master'){
 		$e_branche = $branche;
-	// un tag
-	} elseif ($branche[0] === 'v') {
+		// un tag
+	} elseif ($branche[0]==='v') {
 		$e_branche = "spip/" . substr($branche, 1);
-	// une branche
+		// une branche
 	} else {
 		$e_branche = "spip-" . $branche;
 	}
 
-	foreach ($json as $external) {
+	foreach ($json as $external){
 		$e_dest = $dest . "/" . $external['path'];
 		$e_source = $external['source'];
 		$e_source = str_replace($https_repo_base, $url_repo_base, $e_source);
 		$d = dirname($e_dest);
-		if (!is_dir($d)) {
+		if (!is_dir($d)){
 			mkdir($d);
 		}
 		echo "checkout git -b{$e_branche} $e_source $e_dest\n";
-		echo run_checkout('git' , $e_source, $e_dest, ['branche' => $e_branche]);
+		echo run_checkout('git', $e_source, $e_dest, ['branche' => $e_branche]);
 	}
 
 }
 
-function spip_checkout_plugins_old_version($url_repo_base, $dest, $branche) {
+function spip_checkout_plugins_old_version($url_repo_base, $dest, $branche){
 
 	$file_externals = '.gitsvnextmodules';
 	$file_plugins_dist = 'plugins-dist.json';
@@ -407,14 +408,14 @@ function spip_checkout_plugins_old_version($url_repo_base, $dest, $branche) {
 	$file_plugins_dist_master = "$dest/$file_plugins_dist";
 
 	if (
-		!file_exists($file_plugins_dist) 
+		!file_exists($file_plugins_dist)
 		and !file_exists($file_plugins_dist_master)
 		and !file_exists($file_externals)
 		and !file_exists($file_externals_master)
-	) {
+	){
 		// on commence par checkout SPIP en master pour recuperer le plugins-dist.json (ou anciennement file externals)
 		echo run_checkout('git', $url_repo_base . 'spip.git', $dest, ['branche' => 'master']);
-		if (file_exists($file_plugins_dist_master)) {
+		if (file_exists($file_plugins_dist_master)){
 			@copy($file_plugins_dist_master, $file_plugins_dist);
 		} elseif (file_exists($file_externals_master)) {
 			@copy($file_externals_master, $file_externals);
@@ -424,11 +425,11 @@ function spip_checkout_plugins_old_version($url_repo_base, $dest, $branche) {
 	}
 
 	// version moderne :)
-	if (file_exists($f = $file_plugins_dist) or file_exists($f = $file_plugins_dist_master)) {
+	if (file_exists($f = $file_plugins_dist) or file_exists($f = $file_plugins_dist_master)){
 		echo "Obtention des plugins-dist via $file_plugins_dist (master) ...\n";
 		$json = file_get_contents("$dest/$file_plugins_dist");
 		$json = json_decode($json, true);
-		if (in_array($branche, ["3.2", "3.1", "3.0"])) {
+		if (in_array($branche, ["3.2", "3.1", "3.0"])){
 			unset($json['bigup']);
 		}
 		spip_checkout_plugins_json($json, $url_repo_base, $dest, $branche);
@@ -437,28 +438,27 @@ function spip_checkout_plugins_old_version($url_repo_base, $dest, $branche) {
 
 	// old school
 	echo "Obtention des plugins-dist via $file_externals (master) ...\n";
-	if (file_exists($f = $file_externals_master) or file_exists($f = $file_externals)) {
+	if (file_exists($f = $file_externals_master) or file_exists($f = $file_externals)){
 		$externals = parse_ini_file($f, true);
-		foreach ($externals as $external) {
+		foreach ($externals as $external){
 
 			$e_methode = $external['remote'];
 			$e_source = $external['url'];
 			$e_dest = $dest . "/" . $external['path'];
 			// Historique avant le 27 09 2020, les branches SPIP des plugins dist étaient '3.2'
-			if ($branche === 'master') {
+			if ($branche==='master'){
 				$e_branche = $branche;
 			} else {
 				$e_branche = "spip-" . $branche;
 			}
 
 			// remplacer les sources SVN _core_ par le git.spip.net si possible
-			if ($e_methode == 'svn') {
-				if (strpos($e_source, "svn://zone.spip.org/spip-zone/_core_/plugins/") === 0) {
+			if ($e_methode=='svn'){
+				if (strpos($e_source, "svn://zone.spip.org/spip-zone/_core_/plugins/")===0){
 					$e_source = explode("_core_/plugins/", $e_source);
 					$e_source = $url_repo_base . end($e_source) . '.git';
 					$e_methode = "git";
-				}
-				elseif (strpos($e_source, "svn://zone.spip.org/spip-zone/_core_/tags/") === 0) {
+				} elseif (strpos($e_source, "svn://zone.spip.org/spip-zone/_core_/tags/")===0) {
 					// zone.spip.org/spip-zone/_core_/tags/spip-3.2.7/plugins/aide
 					$e_source = explode("_core_/tags/", $e_source);
 					$e_source = explode('/', end($e_source));
@@ -467,9 +467,8 @@ function spip_checkout_plugins_old_version($url_repo_base, $dest, $branche) {
 					array_shift($e_source);
 					$e_source = $url_repo_base . implode('/', $e_source) . '.git';
 					$e_methode = "git";
-				}
-				elseif (strpos($e_source, "https://github.com/") === 0) {
-					if (in_array($branche, ["3.2", "3.1", "3.0"])) {
+				} elseif (strpos($e_source, "https://github.com/")===0) {
+					if (in_array($branche, ["3.2", "3.1", "3.0"])){
 						continue;
 					}
 					$e_source = explode("//github.com/", $e_source);
@@ -489,20 +488,19 @@ function spip_checkout_plugins_old_version($url_repo_base, $dest, $branche) {
 					}
 					$e_source = "https://github.com/$user/$repo.git";
 					// renommage a la volee
-					$e_source = str_replace( ['https://github.com/marcimat/bigup'], [ $url_repo_base . 'bigup'], $e_source);
+					$e_source = str_replace(['https://github.com/marcimat/bigup'], [$url_repo_base . 'bigup'], $e_source);
 					$e_methode = "git";
 				}
 			}
 			$d = dirname($e_dest);
-			if (!is_dir($d)) {
+			if (!is_dir($d)){
 				mkdir($d);
 			}
 			echo "checkout $e_methode -b{$e_branche} $e_source $e_dest\n";
-			echo run_checkout($e_methode , $e_source, $e_dest, ['branche' => $e_branche]);
+			echo run_checkout($e_methode, $e_source, $e_dest, ['branche' => $e_branche]);
 		}
 	}
 }
-
 
 
 /**
@@ -517,10 +515,10 @@ function spip_checkout_plugins_old_version($url_repo_base, $dest, $branche) {
  * @param array $options
  * @return string
  */
-function svn_checkout($source,$dest,$options){
+function svn_checkout($source, $dest, $options){
 	$user = $pass = '';
 	$parts = parse_url($source);
-	if (!empty($parts['user']) and !empty($parts['pass'])) {
+	if (!empty($parts['user']) and !empty($parts['pass'])){
 		$user = $parts['user'];
 		$pass = $parts['pass'];
 		$source = str_replace("://$user:$pass@", '://', $source);
@@ -529,70 +527,70 @@ function svn_checkout($source,$dest,$options){
 	$checkout_needed = false;
 
 	if (is_dir($dest)){
-		$infos = svn_read($dest,array('format'=>'assoc'));
+		$infos = svn_read($dest, array('format' => 'assoc'));
 		if (!$infos){
 			erreur_repertoire_existant("$dest n'est pas au format SVN", $dest, false);
 			$checkout_needed = true;
-		}
-		elseif ($infos['source']!==$source) {
+		} elseif ($infos['source']!==$source) {
 			// gerer le cas particulier ou le repo a mv dans un sous dossier trunk ou branches/.. mais on pointe sur une revision anterieure
 			// du coup le svn info renvoi toujours l'ancien dossier :(
 			$checkout_needed = true;
-			if (strpos($source, $infos['source'])===0) {
+			if (strpos($source, $infos['source'])===0){
 				$subfolder = ltrim(substr($source, strlen($infos['source'])), DIRECTORY_SEPARATOR);
-				if (strpos($subfolder,'branches/')!== false or $subfolder==='trunk') {
-					if (!file_exists($dest . DIRECTORY_SEPARATOR . $subfolder)) {
-						if (isset($options['revision']) and $options['revision']==$infos['revision']) {
+				if (strpos($subfolder, 'branches/')!==false or $subfolder==='trunk'){
+					if (!file_exists($dest . DIRECTORY_SEPARATOR . $subfolder)){
+						if (isset($options['revision']) and $options['revision']==$infos['revision']){
 							$checkout_needed = false;
-							$command = "$dest sur $source Revision ".$options['revision']. " (avant passage en $subfolder)";
+							$command = "$dest sur $source Revision " . $options['revision'] . " (avant passage en $subfolder)";
 						}
 					}
 				}
 			}
-			if ($checkout_needed) {
+			if ($checkout_needed){
 				erreur_repertoire_existant("$dest n'est pas sur le bon repository SVN", $dest, false);
 			}
-		}
-		elseif (!isset($options['revision'])
-		  OR $options['revision']!=$infos['revision']){
+		} elseif (!isset($options['revision'])
+			or $options['revision']!=$infos['revision']) {
 			$command = "svn up ";
-			if (isset($options['revision']))
-				$command .= "-r".$options['revision']." ";
-			if (isset($options['literal']))
-				$command .= $options['literal']." ";
+			if (isset($options['revision'])){
+				$command .= "-r" . $options['revision'] . " ";
+			}
+			if (isset($options['literal'])){
+				$command .= $options['literal'] . " ";
+			}
 
 			$command .= "$dest";
 			echo "\n$command\n";
 			passthru($command);
 			echo "\n";
+		} else {
+			$command = "$dest deja sur $source Revision " . $options['revision'];
 		}
-		else {
-			$command = "$dest deja sur $source Revision ".$options['revision'];
-		}
-	}
-	else {
+	} else {
 		$checkout_needed = true;
 	}
 	clearstatcache();
 
 	if ($checkout_needed){
 		$dest_co = $dest;
-		while (is_dir($dest_co)) {
+		while (is_dir($dest_co)){
 			$dest_co .= '_';
 		}
 		$command = "svn co ";
-		if (isset($options['revision']))
-			$command .= "-r".$options['revision']." ";
-		if (isset($options['literal']))
-			$command .= $options['literal']." ";
-		if ($user and $pass) {
+		if (isset($options['revision'])){
+			$command .= "-r" . $options['revision'] . " ";
+		}
+		if (isset($options['literal'])){
+			$command .= $options['literal'] . " ";
+		}
+		if ($user and $pass){
 			$command .= "--username $user --password $pass ";
 		}
 
 		$command .= "$source $dest_co";
 		echo "\n$command\n";
 		passthru($command);
-		if ($dest_co !== $dest) {
+		if ($dest_co!==$dest){
 			$command = "mv $dest {$dest_co}.old && mv $dest_co $dest && rm -fR {$dest_co}.old";
 			echo "$command\n";
 			passthru($command);
@@ -610,38 +608,42 @@ function svn_checkout($source,$dest,$options){
  * @param $options
  * @return string|array
  */
-function svn_read($dest,$options){
+function svn_read($dest, $options){
 
-	if (!is_dir("$dest/.svn"))
+	if (!is_dir("$dest/.svn")){
 		return "";
+	}
 
 	// si --read on veut lire ce qui est actuellement deploye
 	// et reconstituer la ligne de commande pour le deployer
-	exec("svn info $dest",$output);
-	$output = implode("\n",$output);
+	exec("svn info $dest", $output);
+	$output = implode("\n", $output);
 
 	// URL
 	// URL: svn://trac.rezo.net/spip/spip
-	if (!preg_match(",^URL[^:\w]*:\s+(.*)$,Uims",$output,$m))
+	if (!preg_match(",^URL[^:\w]*:\s+(.*)$,Uims", $output, $m)){
 		return "";
+	}
 	$source = $m[1];
 
 	// Revision
 	// Revision: 18763
-	if (!preg_match(",^R..?vision[^:\w]*:\s+(\d+)$,Uims",$output,$m))
+	if (!preg_match(",^R..?vision[^:\w]*:\s+(\d+)$,Uims", $output, $m)){
 		return "";
+	}
 
 	$revision = $m[1];
 
 	if (isset($options['format'])
-	  AND $options['format']=='assoc')
+		and $options['format']=='assoc'){
 		return array(
 			'source' => $source,
 			'revision' => $revision,
 			'dest' => $dest
 		);
+	}
 
-	return $GLOBALS['script']." svn -r$revision $source $dest";
+	return $GLOBALS['script'] . " svn -r$revision $source $dest";
 }
 
 /**
@@ -652,62 +654,64 @@ function svn_read($dest,$options){
  *   to : revision de fin
  * @return string
  */
-function svn_log($source,$options){
+function svn_log($source, $options){
 
 	$r = "";
-	if (isset($options['from']) OR isset($options['to'])){
+	if (isset($options['from']) or isset($options['to'])){
 		$from = 0;
 		$to = "HEAD";
-		if (isset($options['from']))
+		if (isset($options['from'])){
 			$from = ($options['from']+1);
-		if (isset($options['to']))
+		}
+		if (isset($options['to'])){
 			$to = $options['to'];
+		}
 
 		$r = " -r$from:$to";
 	}
 
-	exec("svn log$r $source",$res);
+	exec("svn log$r $source", $res);
 
 
 	$output = "";
 	$comm = "";
 	foreach ($res as $line){
-		if (strncmp($line,"---------------",15)==0
-		  OR !trim($line)){
+		if (strncmp($line, "---------------", 15)==0
+			or !trim($line)){
 
-		}
-		elseif(preg_match(",^r\d+,i",$line) AND count(explode("|",$line))>3){
+		} elseif (preg_match(",^r\d+,i", $line) and count(explode("|", $line))>3) {
 
-			if (strlen($comm)>_MAX_LOG_LENGTH)
-				$comm = substr($comm,0,_MAX_LOG_LENGTH)."...";
+			if (strlen($comm)>_MAX_LOG_LENGTH){
+				$comm = substr($comm, 0, _MAX_LOG_LENGTH) . "...";
+			}
 
-			$line = explode("|",$line);
-			$date = explode("(",$line[2]);
+			$line = explode("|", $line);
+			$date = explode("(", $line[2]);
 			$date = reset($date);
 			$date = strtotime($date);
-			$output.=
+			$output .=
 				$comm
 				. "\n"
 				. $line[0]
 				. "|"
 				. $line[1]
 				. "| "
-				. date('Y-m-d H:i:s',$date)
+				. date('Y-m-d H:i:s', $date)
 				. " |";
 			$comm = "";
-		}
-		else {
+		} else {
 			$comm .= " $line";
 		}
 	}
-	if (strlen($comm)>_MAX_LOG_LENGTH)
-		$comm = substr($comm,0,_MAX_LOG_LENGTH)."...";
+	if (strlen($comm)>_MAX_LOG_LENGTH){
+		$comm = substr($comm, 0, _MAX_LOG_LENGTH) . "...";
+	}
 	$output .= $comm;
 
 	// reclasser le commit le plus recent en premier, git-style
-	$output = explode("\n",$output);
+	$output = explode("\n", $output);
 	$output = array_reverse($output);
-	$output = implode("\n",$output);
+	$output = implode("\n", $output);
 
 	return trim($output);
 }
@@ -718,7 +722,6 @@ function svn_log($source,$options){
  */
 
 
-
 /**
  * Deployer un repo GIT depuis source et revision donnees
  * @param string $source
@@ -726,24 +729,22 @@ function svn_log($source,$options){
  * @param array $options
  * @return string
  */
-function git_checkout($source,$dest,$options){
+function git_checkout($source, $dest, $options){
 
 	$checkout_needed = false;
 
 	$curdir = getcwd();
-	$branche = (isset($options['branche'])?$options['branche']:'master');
+	$branche = (isset($options['branche']) ? $options['branche'] : 'master');
 	if (is_dir($dest)){
-		$infos = git_read($dest,array('format'=>'assoc'));
+		$infos = git_read($dest, array('format' => 'assoc'));
 		if (!$infos){
 			erreur_repertoire_existant("$dest n'est pas au format GIT", $dest, false);
 			$checkout_needed = true;
-		}
-		elseif (strtolower($infos['source']) !== strtolower($source)) {
+		} elseif (strtolower($infos['source'])!==strtolower($source)) {
 			erreur_repertoire_existant("$dest n'est pas sur le bon repository GIT\n- Actuel : {$infos['source']}\n- Attendu : $source", $dest, false);
 			$checkout_needed = true;
-		}
-		elseif (!isset($options['revision']) or !isset($infos['revision'])
-		  or git_compare_revisions($options['revision'], $infos['revision']) !== 0){
+		} elseif (!isset($options['revision']) or !isset($infos['revision'])
+			or git_compare_revisions($options['revision'], $infos['revision'])!==0) {
 			git_check_mirrors($dest, $source);
 			chdir($dest);
 			//$command = "git checkout $branche";
@@ -752,17 +753,16 @@ function git_checkout($source,$dest,$options){
 			passthru($command);
 
 			if (isset($options['revision'])){
-				$command = "git checkout --detach ".$options['revision'];
+				$command = "git checkout --detach " . $options['revision'];
 				echo "\n$command\n";
 				passthru($command);
 				echo "\n";
-			}
-			else {
+			} else {
 				$command = "git pull --rebase";
-				if ($infos['modified']) {
+				if ($infos['modified']){
 					$command = "git stash && $command && git stash pop";
 				}
-				if (!isset($infos['branche']) or $infos['branche'] !== $branche) {
+				if (!isset($infos['branche']) or $infos['branche']!==$branche){
 					$command = "git checkout $branche && $command";
 				}
 				echo "\n$command\n";
@@ -770,37 +770,35 @@ function git_checkout($source,$dest,$options){
 				echo "\n";
 			}
 			chdir($curdir);
+		} else {
+			$command = "$dest deja sur $source Revision " . $options['revision'];
 		}
-		else {
-			$command = "$dest deja sur $source Revision ".$options['revision'];
-		}
-	}
-	else {
+	} else {
 		$checkout_needed = true;
 	}
 	clearstatcache();
 
 	if ($checkout_needed){
 		$dest_co = $dest;
-		while (is_dir($dest_co)) {
+		while (is_dir($dest_co)){
 			$dest_co .= '_';
 		}
 		$command = "git clone ";
 		$command .= "$source $dest_co";
 		echo "\n$command\n";
 		passthru($command, $error);
-		if (!is_dir($dest_co) or $error) {
-			if ($urls_alt = git_get_urls_mirrors($source)) {
-				foreach ($urls_alt as $source_alt) {
+		if (!is_dir($dest_co) or $error){
+			if ($urls_alt = git_get_urls_mirrors($source)){
+				foreach ($urls_alt as $source_alt){
 					$command = "git clone ";
 					$command .= "$source_alt $dest_co";
 					echo "\n$command\n";
 					passthru($command, $error);
-					if (is_dir($dest_co) and !$error) {
+					if (is_dir($dest_co) and !$error){
 						break;
 					}
 				}
-				if (is_dir($dest_co)) {
+				if (is_dir($dest_co)){
 					$command = "git remote rename origin mirror";
 					echo "\n$command\n";
 					passthru("cd $dest_co && $command");
@@ -810,23 +808,22 @@ function git_checkout($source,$dest,$options){
 				}
 			}
 		}
-		if (is_dir($dest_co)) {
+		if (is_dir($dest_co)){
 			git_check_mirrors($dest_co, $source);
 			if (isset($options['revision'])){
 				chdir($dest_co);
-				$command = "git checkout --detach ".$options['revision'];
+				$command = "git checkout --detach " . $options['revision'];
 				echo "$command\n";
 				passthru($command);
 				chdir($curdir);
-			}
-			elseif ($branche !== 'master') {
+			} elseif ($branche!=='master') {
 				chdir($dest_co);
 				$command = "git checkout $branche";
 				echo "$command\n";
 				passthru($command);
 				chdir($curdir);
 			}
-			if ($dest_co !== $dest) {
+			if ($dest_co!==$dest){
 				$command = "mv $dest {$dest_co}.old && mv $dest_co $dest && rm -fR {$dest_co}.old";
 				echo "$command\n";
 				passthru($command);
@@ -843,7 +840,7 @@ function git_checkout($source,$dest,$options){
  * @param string $rev2
  * @return int
  */
-function git_compare_revisions($rev1, $rev2) {
+function git_compare_revisions($rev1, $rev2){
 	$len = min(strlen($rev1), strlen($rev2));
 	$len = max($len, 7);
 
@@ -857,8 +854,9 @@ function git_compare_revisions($rev1, $rev2) {
  * @return string|array
  */
 function git_read($dest, $options){
-	if (!is_dir("$dest/.git"))
+	if (!is_dir("$dest/.git")){
 		return "";
+	}
 
 	$remotes = git_get_remotes($dest);
 	if (!$remotes){
@@ -868,61 +866,60 @@ function git_read($dest, $options){
 	$curdir = getcwd();
 	chdir($dest);
 
-	if (isset($remotes['origin'])) {
+	if (isset($remotes['origin'])){
 		$source = $remotes['origin'];
-	}
-	else {
+	} else {
 		$source = reset($remotes);
 	}
 
 	$modifed = false;
 	$branche = false;
-	exec("git status -b -s",$output);
-	if (count($output) > 1) {
+	exec("git status -b -s", $output);
+	if (count($output)>1){
 		$full = implode("|\n", $output);
-		if (strpos($full,"|\n M") !== false or strpos($full,"|\nM") !== false) {
+		if (strpos($full, "|\n M")!==false or strpos($full, "|\nM")!==false){
 			$modifed = true;
 		}
 	}
 	// ## master...origin/master
 	$output = reset($output);
-	if (strpos($output, '...') !== false) {
-		$branche = trim(substr($output,2));
+	if (strpos($output, '...')!==false){
+		$branche = trim(substr($output, 2));
 		$branche = explode('...', $branche);
 		$branche = reset($branche);
 	}
 
 	// qu'on soit sur une branche ou non, on veut la revision courante
-	exec("git log -1",$output);
-	$hash = explode(" ",reset($output));
+	exec("git log -1", $output);
+	$hash = explode(" ", reset($output));
 	$hash = end($hash);
 
 	chdir($curdir);
 
 	if (isset($options['format'])
-	  AND $options['format']=='assoc') {
+		and $options['format']=='assoc'){
 		$res = array(
-					'source' => $source,
-					'dest' => $dest,
-					'modified' => $modifed,
-				);
-		if ($branche) {
+			'source' => $source,
+			'dest' => $dest,
+			'modified' => $modifed,
+		);
+		if ($branche){
 			$res['branche'] = $branche;
 		}
-		if ($hash) {
+		if ($hash){
 			$res['revision'] = $hash;
 		}
 		return $res;
 	}
 
 	$opt = "";
-	if ($hash) {
-		$opt .= " -r".substr($hash,0,7);
+	if ($hash){
+		$opt .= " -r" . substr($hash, 0, 7);
 	}
-	if ($branche) {
+	if ($branche){
 		$opt .= " -b{$branche}";
 	}
-	return $GLOBALS['script']." git{$opt} $source $dest ";
+	return $GLOBALS['script'] . " git{$opt} $source $dest ";
 }
 
 /**
@@ -935,7 +932,7 @@ function git_get_remotes($dir_repo){
 	exec("cd $dir_repo && git remote -v", $output);
 	$remotes = [];
 	foreach ($output as $o){
-		if (preg_match(",(\w+://.*|\w+@[\w\.-]+:.*)\s+\(fetch\)$,Uis",$o,$m)){
+		if (preg_match(",(\w+://.*|\w+@[\w\.-]+:.*)\s+\(fetch\)$,Uis", $o, $m)){
 			$o = preg_replace(",\s+,", " ", $o);
 			$o = explode(' ', $o);
 			$remote_name = array_shift($o);
@@ -947,12 +944,12 @@ function git_get_remotes($dir_repo){
 	return $remotes;
 }
 
-function git_get_urls_mirrors($url_source) {
+function git_get_urls_mirrors($url_source){
 	$url_mirrors = [];
-	foreach ($GLOBALS['git_mirrors'] as $url_git => $mirrors) {
+	foreach ($GLOBALS['git_mirrors'] as $url_git => $mirrors){
 		// si on a un mirroir connu pour cette source, on verifie les remotes
-		if (strpos($url_source, $url_git) === 0) {
-			foreach ($mirrors as $mirror) {
+		if (strpos($url_source, $url_git)===0){
+			foreach ($mirrors as $mirror){
 				$url_mirrors[] = $mirror . substr($url_source, strlen($url_git));
 			}
 		}
@@ -960,16 +957,16 @@ function git_get_urls_mirrors($url_source) {
 	return $url_mirrors;
 }
 
-function git_check_mirrors($dir_repo, $url_source) {
-	if ($url_mirrors = git_get_urls_mirrors($url_source)) {
+function git_check_mirrors($dir_repo, $url_source){
+	if ($url_mirrors = git_get_urls_mirrors($url_source)){
 		$remotes = git_get_remotes($dir_repo);
 		$remote_name = "mirror";
 		$remote_cpt = '';
-		foreach ($url_mirrors as $url_mirror) {
-			if (!in_array($url_mirror, $remotes)) {
+		foreach ($url_mirrors as $url_mirror){
+			if (!in_array($url_mirror, $remotes)){
 				// on ajoute le mirroir en remote
-				while(!empty($remotes[$remote_name . $remote_cpt])) {
-					$remote_cpt = intval($remote_cpt) + 1;
+				while (!empty($remotes[$remote_name . $remote_cpt])){
+					$remote_cpt = intval($remote_cpt)+1;
 				}
 				$command = "git remote add {$remote_name}{$remote_cpt} $url_mirror";
 				echo "\n$command\n";
@@ -988,58 +985,61 @@ function git_check_mirrors($dir_repo, $url_source) {
  *   to : revision de fin
  * @return string
  */
-function git_log($dest,$options){
-	if (!is_dir("$dest/.git"))
+function git_log($dest, $options){
+	if (!is_dir("$dest/.git")){
 		return "";
+	}
 
 	$curdir = getcwd();
 	chdir($dest);
 
 	$r = "";
-	if (isset($options['from']) OR isset($options['to'])){
+	if (isset($options['from']) or isset($options['to'])){
 		$from = "";
 		$to = "";
 		if (isset($options['from'])){
 			$from = $options['from'];
 			$output = array();
-			exec("git log -1 -c $from --pretty=tformat:'%ct'",$output);
+			exec("git log -1 -c $from --pretty=tformat:'%ct'", $output);
 			$t = intval(reset($output));
-			if ($t) {
+			if ($t){
 				//echo date('Y-m-d H:i:s',$t)."\n";
-				$from="--since=$t $from";
+				$from = "--since=$t $from";
 			}
 		}
-		if (isset($options['to']))
+		if (isset($options['to'])){
 			$to = $options['to'];
+		}
 
 		$r = " $from..$to";
 	}
 
 	//exec("git log$r --graph --pretty=tformat:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%an %cr)%Creset' --abbrev-commit --date=relative master",$output);
 	$output = array();
-	exec("git fetch --all 2>&1",$output);
+	exec("git fetch --all 2>&1", $output);
 	$output = array();
 	$branche = "--all";
-	if (isset($options['branche'])) {
+	if (isset($options['branche'])){
 		$branche = $options['branche'];
-		if (strpos($branche, 'origin/') !== 0) {
+		if (strpos($branche, 'origin/')!==0){
 			$branche = 'origin/' . $branche;
 		}
 	}
-	exec("git log$r --pretty=tformat:'%h | %an | %ae | %ct | %d %s ' $branche",$output);
-	foreach($output as $k=>$line){
-		$line = explode("|",ltrim($line,"*"));
+	exec("git log$r --pretty=tformat:'%h | %an | %ae | %ct | %d %s ' $branche", $output);
+	foreach ($output as $k => $line){
+		$line = explode("|", ltrim($line, "*"));
 		$revision = trim(array_shift($line));
 		$comitter_name = trim(array_shift($line));
 		$comitter_email = trim(array_shift($line));
 		$comitter = ($comitter_email ? $comitter_email : $comitter_name);
-		$date = date('Y-m-d H:i:s',trim(array_shift($line)));
-		$comm = trim(implode("|",$line));
-		if (strlen($comm)>_MAX_LOG_LENGTH)
-			$comm = substr($comm,0,_MAX_LOG_LENGTH)."...";
+		$date = date('Y-m-d H:i:s', trim(array_shift($line)));
+		$comm = trim(implode("|", $line));
+		if (strlen($comm)>_MAX_LOG_LENGTH){
+			$comm = substr($comm, 0, _MAX_LOG_LENGTH) . "...";
+		}
 		$output[$k] = "$revision | $comitter | $date | $comm";
 	}
-	$output = implode("\n",$output);
+	$output = implode("\n", $output);
 
 
 	chdir($curdir);
@@ -1060,23 +1060,21 @@ function git_log($dest,$options){
  * @param array $options
  * @return string
  */
-function ftp_checkout($source,$dest,$options){
+function ftp_checkout($source, $dest, $options){
 	$checkout_needed = false;
 
 	if (is_dir($dest)){
-		$infos = ftp_read($dest,array('format'=>'assoc'));
+		$infos = ftp_read($dest, array('format' => 'assoc'));
 		if (!$infos){
 			erreur_repertoire_existant("$dest n'est pas un download FTP", $dest, false);
 			$checkout_needed = true;
 			clearstatcache();
-		}
-		elseif ($infos['source']!==$source) {
+		} elseif ($infos['source']!==$source) {
 			erreur_repertoire_existant("n'est pas un download de $source", $dest, false);
 			$checkout_needed = true;
 			clearstatcache();
 		}
-	}
-	else {
+	} else {
 		$checkout_needed = true;
 	}
 	clearstatcache();
@@ -1084,13 +1082,13 @@ function ftp_checkout($source,$dest,$options){
 
 	if ($checkout_needed){
 		$dest_co = $dest;
-		while (is_dir($dest_co)) {
+		while (is_dir($dest_co)){
 			$dest_co .= '_';
 		}
-		$dirdl = dirname($dest_co)."/";
+		$dirdl = dirname($dest_co) . "/";
 
 		passthru("mkdir -p $dirdl");
-		$d = $dirdl . md5(basename($dest_co)).".tmp";
+		$d = $dirdl . md5(basename($dest_co)) . ".tmp";
 
 		// recuperer le fichier
 		$command = "curl --silent -L \"$source\" > $d";
@@ -1098,7 +1096,7 @@ function ftp_checkout($source,$dest,$options){
 		passthru($command);
 		echo "\n";
 
-		if (!file_exists($d) OR !filesize($d)){
+		if (!file_exists($d) or !filesize($d)){
 			// essayer wget si curl foire
 			$command = "wget $source -O $d";
 			echo "$command\n";
@@ -1111,8 +1109,10 @@ function ftp_checkout($source,$dest,$options){
 
 		$md5 = md5_file($d);
 
-		if (!isset($options['format'])) $options['format']='zip';
-		switch($options['format']){
+		if (!isset($options['format'])){
+			$options['format'] = 'zip';
+		}
+		switch ($options['format']) {
 			case 'zip':
 			default:
 				$tempdir = "{$d}d";
@@ -1121,20 +1121,20 @@ function ftp_checkout($source,$dest,$options){
 				passthru($command);
 				echo "\n";
 				$deplace = $tempdir;
-				$sous = glob("$deplace/"."*");
-				if (count($sous)==1 and $sd = reset($sous) and is_dir($sd)) {
+				$sous = glob("$deplace/" . "*");
+				if (count($sous)==1 and $sd = reset($sous) and is_dir($sd)){
 					$deplace = $sd;
 				}
 				$command = "mv $deplace $dest_co";
 				echo "\n$command\n";
 				passthru($command);
-				if ($dest_co !== $dest) {
+				if ($dest_co!==$dest){
 					$command = "mv $dest {$dest_co}.old && mv $dest_co $dest && rm -fR {$dest_co}.old";
 					echo "$command\n";
 					passthru($command);
 				}
 				echo "\n";
-				if (is_dir($tempdir)) {
+				if (is_dir($tempdir)){
 					passthru("rmdir $tempdir");
 				}
 				break;
@@ -1142,10 +1142,11 @@ function ftp_checkout($source,$dest,$options){
 		passthru("rm $d");
 	}
 
-	if (is_dir($dest) and isset($md5))
-		file_put_contents("$dest/.ftpsource","$source\n$md5");
+	if (is_dir($dest) and isset($md5)){
+		file_put_contents("$dest/.ftpsource", "$source\n$md5");
+	}
 
-	$command = ftp_read($dest,array());
+	$command = ftp_read($dest, array());
 	return "OK $command";
 }
 
@@ -1156,22 +1157,24 @@ function ftp_checkout($source,$dest,$options){
  */
 function ftp_read($dest, $options){
 
-	if (!file_exists($f="$dest/.ftpsource"))
+	if (!file_exists($f = "$dest/.ftpsource")){
 		return "";
+	}
 
 	$source = file_get_contents($f);
-	$source = explode("\n",$source);
+	$source = explode("\n", $source);
 
 	$md5 = end($source);
 	$source = reset($source);
 
 	if (isset($options['format'])
-	  AND $options['format']=='assoc')
+		and $options['format']=='assoc'){
 		return array(
 			'source' => $source,
 			'revision' => $md5,
 			'dest' => $dest
 		);
+	}
 
-	return $GLOBALS['script']." ftp $source $dest";
+	return $GLOBALS['script'] . " ftp $source $dest";
 }
