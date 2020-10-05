@@ -72,7 +72,7 @@ checkout spip -bmaster git@git.spip.net dossier_destination
 
 ### Mise à jour d'un SPIP installé avec checkout
 
-En général il suffit de rejouer la commande d'installation : par exemple :
+En général il suffit de rejouer la commande d'installation, par exemple :
 
 ```bash
 checkout spip dossier_destination
