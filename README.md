@@ -28,6 +28,19 @@ sudo ln -s /home/toto/checkout/checkout /usr/bin/checkout
 - cloner/télécharger le dossier *checkout* dans un répertoire de la machine, par exemple *c:\laragon\bin\checkout* ou *c:\xamp\checkout*
 - intégrer le chemin du dossier checkout dans le PATH de la machine : Panneau de configuration > Système > Avancé > Variables d'environnement > variables système : Variable Path ⇒ Modifier > ajouter en fin de chaîne `;c:\laragon\bin\checkout`
 
+### Docker
+
+Cet outils est inclus dans l'image docker [spip/tools](https://hub.docker.com/r/spip/tools).
+
+Si vous souhaitez l'intégrer à vos propres images docker, il est recommandé de procéder comme suit dans le fichier
+`Dockerfile` de votre image.
+
+```Dockerfile
+COPY --from=spipremix/checkout /checkout /usr/local/bin/checkout
+```
+
+N'utilisez pas l'image `spipremix/checkout` telle quelle, elle n'est pas prévue pour cela.
+
 ### Tous les OS
 
 Tester que l'utilitaire checkout est opérationnel :
