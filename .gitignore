@@ -1,0 +1,8 @@
+/vendor/
+/composer.phar
+/tools/
+/.phive/
+/.php_cs.cache
+/php_cs.txt
+/php_cs.xml
+/phpcs.xml

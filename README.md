@@ -1,6 +1,4 @@
-# checkout
-
-**Script de checkout multi-méthodes permettant une syntaxe unifiée git/svn/ftp**
+# Script de checkout multi-méthodes permettant une syntaxe unifiée git/svn/ftp**
 
 Le script `checkout` permet de télécharger ou mettre à jour des sources Git ou Svn (ou Zip), et propose également une méthode pour télécharger les sources de SPIP.
 
