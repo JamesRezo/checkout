@@ -1,4 +1,7 @@
 {
+    "name": "spipremix/checkout",
+    "description": "Script de checkout multi-méthodes permettant une syntaxe unifiée git/svn/ftp",
+    "license": "MIT",
     "require-dev": {
         "phpcompatibility/php-compatibility": "^9.3",
         "squizlabs/php_codesniffer": "^3.5"
